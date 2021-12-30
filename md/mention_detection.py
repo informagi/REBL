@@ -106,10 +106,17 @@ class MentionDetection:
         table = pa.Table.from_pandas(df=fields, preserve_index=False)
         with pq.ParquetWriter(self.out_file[:-8] + '_field_mapping.parquet', schema=table.schema) as writer:
             writer.write_table(table)
-        for batch in self.batch_mentions_gen():
-            df = pd.DataFrame(batch, columns=['identifier', 'field', 'text', 'start_pos', 'end_pos', 'score', 'tag'])
-            table = pa.Table.from_pandas(df=df, preserve_index=False)
-            with pq.ParquetWriter(self.out_file, schema=table.schema) as writer:
+
+        gen = self.batch_mentions_gen()
+        df = pd.DataFrame(next(gen),
+                          columns=['identifier', 'field', 'text', 'start_pos', 'end_pos', 'score', 'tag'])
+        table = pa.Table.from_pandas(df=df, preserve_index=False)
+        with pq.ParquetWriter(self.out_file, schema=table.schema) as writer:
+            writer.write_table(table)
+            while batch := next(gen):
+                df = pd.DataFrame(batch,
+                                  columns=['identifier', 'field', 'text', 'start_pos', 'end_pos', 'score', 'tag'])
+                table = pa.Table.from_pandas(df=df, preserve_index=False)
                 writer.write_table(table)
 
     @staticmethod
