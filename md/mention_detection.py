@@ -17,6 +17,7 @@ class MentionDetection:
         self.arguments = self.get_arguments(kwargs)
         self.out_file = self.arguments['out_file']
         self.tagger = SequenceTagger.load(self.arguments['tagger'])
+        self.field_mapping = {f: i for i, f in enumerate(self.arguments['fields'])}
 
     def input_stream_gen(self):
         with gzip.open(self.arguments['in_file'], 'rb') as f:
@@ -44,43 +45,45 @@ class MentionDetection:
     def jsonl_to_sentences_with_id_gen(self):
         for line in self.input_stream_gen():
             json_line = json.loads(line)
-            base_id = json_line[self.arguments['identifier']]
+            identifier = json_line[self.arguments['identifier']]
             for field in self.arguments['fields']:
                 raw_text = json_line[field]
                 for sentence_object in self.create_sentences(raw_text):
-                    yield sentence_object, base_id + '_' + field
+                    yield sentence_object, identifier, self.field_mapping[field]
 
     def batch_sentence_gen(self):
-        batch, ids = list(), list()
-        for sentence, identifier in self.jsonl_to_sentences_with_id_gen():
+        batch, ids, fields = list(), list(), list()
+        for sentence, identifier, field in self.jsonl_to_sentences_with_id_gen():
             batch.append(sentence)
             ids.append(identifier)
+            fields.append(field)
             if len(batch) == int(self.arguments['predict_batch_size']):
-                yield batch, ids
-                batch, ids = list(), list()
-        yield batch, ids
+                yield batch, ids, fields
+                batch, ids, fields = list(), list(), list()
+        yield batch, ids, fields
 
     def mention_detect_sentence_batch_gen(self):
-        for batch, ids in self.batch_sentence_gen():
+        for batch, ids, fields in self.batch_sentence_gen():
             self.tagger.predict(batch)
-            yield batch, ids
+            yield batch, ids, fields
 
     def sentence_md_batches_to_sentences_gen(self):
-        for sentence_batch, id_batch in self.mention_detect_sentence_batch_gen():
-            for sentence, identifier in zip(sentence_batch, id_batch):
-                yield sentence, identifier
+        for sentence_batch, id_batch, field_batch in self.mention_detect_sentence_batch_gen():
+            for sentence, identifier, field in zip(sentence_batch, id_batch, field_batch):
+                yield sentence, identifier, field
 
     def sentence_to_mentions_gen(self):
-        for sentence, identifier in self.sentence_md_batches_to_sentences_gen():
+        for sentence, identifier, field in self.sentence_md_batches_to_sentences_gen():
             for entity in sentence.get_spans('ner'):
-                yield entity, identifier
+                yield entity, identifier, field
 
     def batch_mentions_gen(self):
         batch = []
-        for entity, identifier in self.sentence_to_mentions_gen():
+        for entity, identifier, field in self.sentence_to_mentions_gen():
             batch.append(
                 [
                     identifier,
+                    field,
                     entity.text,
                     entity.start_pos,
                     entity.end_pos,
@@ -94,8 +97,12 @@ class MentionDetection:
         yield batch
 
     def write_batches_to_parquet(self):
+        fields = pd.DataFrame.from_dict({k: [v] for k, v in self.field_mapping.items()})
+        table = pa.Table.from_pandas(df=fields, preserve_index=False)
+        with pq.ParquetWriter(self.out_file[:-8] + '_field_mapping.parquet', schema=table.schema) as writer:
+            writer.write_table(table)
         for batch in self.batch_mentions_gen():
-            df = pd.DataFrame(batch, columns=['identifier', 'text', 'start_pos', 'end_pos', 'score', 'tag'])
+            df = pd.DataFrame(batch, columns=['identifier', 'field', 'text', 'start_pos', 'end_pos', 'score', 'tag'])
             table = pa.Table.from_pandas(df=df, preserve_index=False)
             with pq.ParquetWriter(self.out_file, schema=table.schema) as writer:
                 writer.write_table(table)
