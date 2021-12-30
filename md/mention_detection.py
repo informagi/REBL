@@ -37,6 +37,8 @@ class MentionDetection:
                 try:
                     assert token.text == text[start:end]
                 except AssertionError as e:
+                    print(token.text)
+                    print(text[start:end])
                     print(e)
                     raise AssertionError
             sentence_list.append(manual_sent)
@@ -173,4 +175,3 @@ if __name__ == '__main__':
     )
     md = MentionDetection(**vars(parser.parse_args()))
     md.write_batches_to_parquet()
-
