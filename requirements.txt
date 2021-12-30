@@ -2,3 +2,4 @@ pandas
 pyarrow
 flair
 syntok
+torch>=1.5.0,!=1.8.*
