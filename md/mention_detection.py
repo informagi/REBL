@@ -24,8 +24,7 @@ class MentionDetection:
             for line in f:
                 yield line
 
-    @staticmethod
-    def create_sentences(text):
+    def create_sentences(self, text, identifier):
         sentence_list = []
         for syntok_sentence in chain.from_iterable(analyze(text)):
             manual_sent = Sentence()
@@ -40,7 +39,11 @@ class MentionDetection:
                     print(token.text)
                     print(text[start:end])
                     print(e)
-                    raise AssertionError
+                    # For now ignore this document and store identifier in error file
+                    with open(self.arguments['out_file'][:-8] + '_errors.txt', 'a') as f:
+                        f.write(identifier)
+                        f.write('\n')
+                    return []
             sentence_list.append(manual_sent)
         return sentence_list
 
@@ -50,7 +53,7 @@ class MentionDetection:
             identifier = json_line[self.arguments['identifier']]
             for field in self.arguments['fields']:
                 raw_text = json_line[field]
-                for sentence_object in self.create_sentences(raw_text):
+                for sentence_object in self.create_sentences(raw_text, identifier):
                     yield sentence_object, identifier, self.field_mapping[field]
 
     def batch_sentence_gen(self):
