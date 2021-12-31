@@ -20,9 +20,17 @@ class MentionDetection:
         self.field_mapping = {f: i for i, f in enumerate(self.arguments['fields'])}
 
     def input_stream_gen(self):
-        with gzip.open(self.arguments['in_file'], 'rb') as f:
-            for line in f:
-                yield line
+        try: 
+            # try read first line as gzipped file
+            f = gzip.open(self.arguments['in_file'], 'rt', encoding='utf-8')
+            yield f.readline()
+        except gzip.BadGzipFile:
+            # if input is not gzipped, fallback to normal file I/O
+            f = open(self.arguments['in_file'], 'rt', encoding='utf-8')
+            yield f.readline()
+        # Generate rest of the input
+        for line in f:
+            yield line
 
     def create_sentences(self, text, identifier):
         sentence_list = []
