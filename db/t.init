@@ -1,0 +1,3 @@
+.print Change to data dir.
+.cd /export/data2/tmp
+.print Ready to roll!
