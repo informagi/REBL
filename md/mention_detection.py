@@ -4,8 +4,9 @@ import json
 from itertools import chain
 
 import pandas as pd
-import pyarrow.parquet as pq
 import pyarrow as pa
+import pyarrow.parquet as pq
+import torch
 from flair.data import Sentence, Token
 from flair.models import SequenceTagger
 from syntok.segmenter import analyze
@@ -20,9 +21,17 @@ class MentionDetection:
         self.field_mapping = {f: i for i, f in enumerate(self.arguments['fields'])}
 
     def input_stream_gen(self):
-        with gzip.open(self.arguments['in_file'], 'rb') as f:
-            for line in f:
-                yield line
+        try:
+            # try read first line as gzipped file
+            f = gzip.open(self.arguments['in_file'], 'rt', encoding='utf-8')
+            yield f.readline()
+        except gzip.BadGzipFile:
+            # if input is not gzipped, fallback to normal file I/O
+            f = open(self.arguments['in_file'], 'rt', encoding='utf-8')
+            yield f.readline()
+        # Generate rest of the input
+        for line in f:
+            yield line
 
     def create_sentences(self, text, identifier):
         sentence_list = []
@@ -69,7 +78,11 @@ class MentionDetection:
 
     def mention_detect_sentence_batch_gen(self):
         for batch, ids, fields in self.batch_sentence_gen():
-            self.tagger.predict(batch)
+            try:
+                self.tagger.predict(batch)
+            except RuntimeError:
+                torch.cuda.empty_cache()
+                self.tagger.predict(batch)
             yield batch, ids, fields
 
     def sentence_md_batches_to_sentences_gen(self):
