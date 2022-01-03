@@ -4,8 +4,9 @@ import json
 from itertools import chain
 
 import pandas as pd
-import pyarrow.parquet as pq
 import pyarrow as pa
+import pyarrow.parquet as pq
+import torch
 from flair.data import Sentence, Token
 from flair.models import SequenceTagger
 from syntok.segmenter import analyze
@@ -20,7 +21,7 @@ class MentionDetection:
         self.field_mapping = {f: i for i, f in enumerate(self.arguments['fields'])}
 
     def input_stream_gen(self):
-        try: 
+        try:
             # try read first line as gzipped file
             f = gzip.open(self.arguments['in_file'], 'rt', encoding='utf-8')
             yield f.readline()
@@ -77,7 +78,11 @@ class MentionDetection:
 
     def mention_detect_sentence_batch_gen(self):
         for batch, ids, fields in self.batch_sentence_gen():
-            self.tagger.predict(batch)
+            try:
+                self.tagger.predict(batch)
+            except RuntimeError:
+                torch.cuda.empty_cache()
+                self.tagger.predict(batch)
             yield batch, ids, fields
 
     def sentence_md_batches_to_sentences_gen(self):
