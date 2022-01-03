@@ -2,4 +2,5 @@ pandas
 pyarrow
 flair
 syntok
+-f https://download.pytorch.org/whl/torch_stable.html
 torch>=1.5.0,!=1.8.*
