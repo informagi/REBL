@@ -2,8 +2,7 @@
 -- Transform MD tables
 --
 
--- Does the progress bar work?
-SET enable_progress_bar=true;
+-- SET enable_progress_bar=true;
 
 --
 -- Define types
@@ -65,7 +64,10 @@ COMMIT;
 --
 BEGIN TRANSACTION;
 
-CREATE TABLE edict(eid UINTEGER, e VARCHAR, ef UINTEGER);
+CREATE TABLE edict(
+	eid UINTEGER PRIMARY KEY, 
+	e VARCHAR, 
+	ef UINTEGER);
 
 INSERT INTO edict
 SELECT row_number() OVER (), text, ef
@@ -75,6 +77,8 @@ FROM
    GROUP by text
    ORDER by ef DESC
   );
+
+CREATE INDEX e_idx ON edict(e);
 
 COMMIT;
 
@@ -117,5 +121,7 @@ WHERE
       d.identifier = docs.identifier
   AND fd.id = docs.field
   AND ed.e  = docs.text;
+
+CREATE INDEX de_idx ON doc(e);
 
 COMMIT;
