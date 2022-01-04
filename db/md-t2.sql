@@ -1,7 +1,9 @@
 -- Do we get the same results?
-select text, tag, count(*) as ef
-from doc
-where docid=21381293
-group by text, tag 
+SELECT edict.e, doc.tag, count(doc.e) as ef
+FROM doc, edict
+WHERE 
+      docid=21381293
+  AND doc.e = edict.eid
+group by doc.e, edict.e, doc.tag 
 order by ef desc
 limit 10;

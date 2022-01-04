@@ -2,6 +2,9 @@
 -- Transform MD tables
 --
 
+-- Does the progress bar work?
+SET enable_progress_bar=true;
+
 --
 -- Define types
 --
@@ -58,6 +61,24 @@ ORDER BY docid;
 COMMIT;
 
 --
+-- Entity dictionary
+--
+BEGIN TRANSACTION;
+
+CREATE TABLE edict(eid UINTEGER, e VARCHAR, ef UINTEGER);
+
+INSERT INTO edict
+SELECT row_number() OVER (), text, ef
+FROM
+  (SELECT text, count(*) as ef
+   FROM 'msmarco_doc_00.parquet'
+   GROUP by text
+   ORDER by ef DESC
+  );
+
+COMMIT;
+
+--
 -- The Document-Entity Table
 --
 
@@ -68,7 +89,7 @@ CREATE TABLE doc(
 	cpart UTINYINT,
 	docid UINTEGER,
 	field fields,
-	text VARCHAR(127),
+	e UINTEGER,
 	start_pos UINTEGER,
 	end_pos UINTEGER,
 	score DOUBLE,
@@ -86,14 +107,15 @@ SELECT
   d.cpart, 
   d.docid,
   fd.field,
-  docs.text,
+  ed.eid,
   docs.start_pos,
   docs.end_pos,
   docs.score,
   docs.tag
-FROM dict d, 'msmarco_doc_00.parquet' docs, fielddict fd
+FROM dict d, 'msmarco_doc_00.parquet' docs, fielddict fd, edict ed
 WHERE 
       d.identifier = docs.identifier
-  AND fd.id = docs.field;
+  AND fd.id = docs.field
+  AND ed.e  = docs.text;
 
 COMMIT;
