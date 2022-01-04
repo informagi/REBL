@@ -78,7 +78,8 @@ FROM
    ORDER by ef DESC
   );
 
-CREATE INDEX e_idx ON edict(e);
+-- Would be useful if index persisted:
+-- CREATE INDEX e_idx ON edict(e);
 
 COMMIT;
 
@@ -122,6 +123,7 @@ WHERE
   AND fd.id = docs.field
   AND ed.e  = docs.text;
 
-CREATE INDEX de_idx ON doc(e);
+-- Would be useful if the index persisted...
+-- CREATE INDEX de_idx ON doc(e);
 
 COMMIT;
