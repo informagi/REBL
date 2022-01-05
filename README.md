@@ -14,5 +14,5 @@ Note that `torch` requires a pretty old `python` (3.8), or this command will fai
 
 ## Run
 
-    python md/mention_detection.py -i /data/doc.txt -o /data/doc.parquet -pb 10
+    python link_jsonl_collection/md/mention_detection.py -i /data/doc.txt -o /data/doc.parquet -pb 10
 

@@ -1,6 +1,7 @@
 import argparse
 import gzip
 import json
+import re
 from itertools import chain
 
 import pandas as pd
@@ -19,6 +20,7 @@ class MentionDetection:
         self.out_file = self.arguments['out_file']
         self.tagger = SequenceTagger.load(self.arguments['tagger'])
         self.field_mapping = {f: i for i, f in enumerate(self.arguments['fields'])}
+        self.chars_removed_by_flair = re.compile("([\u200c\ufe0f\ufeff])")
 
     def input_stream_gen(self):
         try:
@@ -36,18 +38,25 @@ class MentionDetection:
     def create_sentences(self, text, identifier):
         sentence_list = []
         for syntok_sentence in chain.from_iterable(analyze(text)):
+            remove_char_counts = []
             manual_sent = Sentence()
             for token in syntok_sentence:
-                manual_sent.add_token(Token(token._value, start_position=token._offset))
-            for token in manual_sent:
+                manual_sent.add_token(Token(token.value, start_position=token.offset))
+                # Find how much we need to increase the offset by the characters that are removed by flair
+                remove_char_counts.append(len(self.chars_removed_by_flair.findall(token.value)))
+
+            for i, token in enumerate(manual_sent):
                 start = token.start_pos
-                end = start + len(token.text)
-                try:
-                    assert token.text == text[start:end]
+                end = start + len(token.text) + remove_char_counts[i]
+                raw_token_cleaned = self.chars_removed_by_flair.sub('', text[start:end])
+                token.end_pos = end
+                try:  # Especially important that the offset is still correct, the rest can be reconstructed
+                    assert raw_token_cleaned == token.text
                 except AssertionError as e:
                     print(token.text)
-                    print(text[start:end])
+                    print(raw_token_cleaned)
                     print(e)
+                    print()
                     # For now ignore this document and store identifier in error file
                     with open(self.arguments['out_file'][:-8] + '_errors.txt', 'a') as f:
                         f.write(identifier)
@@ -126,7 +135,11 @@ class MentionDetection:
         table = pa.Table.from_pandas(df=df, preserve_index=False)
         with pq.ParquetWriter(self.out_file, schema=table.schema) as writer:
             writer.write_table(table)
-            while batch := next(gen):
+            while True:
+                try:
+                    batch = next(gen)
+                except StopIteration:
+                    break
                 df = pd.DataFrame(batch,
                                   columns=['identifier', 'field', 'text', 'start_pos', 'end_pos', 'score', 'tag'])
                 table = pa.Table.from_pandas(df=df, preserve_index=False)
