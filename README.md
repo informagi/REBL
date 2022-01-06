@@ -1,4 +1,4 @@
-# link-jsonl-collection
+# REBL
 
 Batch entity linking of a JSON lines collection
 
