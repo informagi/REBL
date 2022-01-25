@@ -74,9 +74,19 @@ class MentionDetection:
                 for sentence_object in self.create_sentences(raw_text, identifier):
                     yield sentence_object, identifier, self.field_mapping[field]
 
+    def tab_sep_to_sentences_with_id_gen(self):
+        for line in self.input_stream_gen():
+            identifier, text = line.strip().split('\t')
+            for sentence_object in self.create_sentences(text, identifier):
+                yield sentence_object, identifier, 'body'
+
     def batch_sentence_gen(self):
         batch, ids, fields = list(), list(), list()
-        for sentence, identifier, field in self.jsonl_to_sentences_with_id_gen():
+        if self.arguments['file_type'] == 'jsonl':
+            doc_gen = self.jsonl_to_sentences_with_id_gen()
+        else:
+            doc_gen = self.tab_sep_to_sentences_with_id_gen()
+        for sentence, identifier, field in doc_gen:
             batch.append(sentence)
             ids.append(identifier)
             fields.append(field)
@@ -154,7 +164,8 @@ class MentionDetection:
             'fields': ['title', 'headings', 'body'],
             'identifier': 'docid',
             'predict_batch_size': '100',
-            'write_batch_size': '10000'
+            'write_batch_size': '10000',
+            'file_type': 'jsonl'
         }
         for key, item in arguments.items():
             if kwargs.get(key) is not None:
@@ -208,6 +219,13 @@ if __name__ == '__main__':
         '--write_batch_size',
         help='How many Sentences to tag at once',
         default='10000'
+    )
+    parser.add_argument(
+        '-ft',
+        '--file_type',
+        choices=['jsonl', 'tsv'],
+        help='What is the input file format',
+        default='jsonl'
     )
     md = MentionDetection(**vars(parser.parse_args()))
     md.write_batches_to_parquet()
