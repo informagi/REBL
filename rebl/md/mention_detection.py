@@ -3,6 +3,7 @@ import gzip
 import json
 import re
 from itertools import chain
+from rebl.utils.input_stream_generator import input_stream_gen_lines
 
 import pandas as pd
 import pyarrow as pa
@@ -21,19 +22,6 @@ class MentionDetection:
         self.tagger = SequenceTagger.load(self.arguments['tagger'])
         self.field_mapping = {f: i for i, f in enumerate(self.arguments['fields'])}
         self.chars_removed_by_flair = re.compile("([\u200c\ufe0f\ufeff])")
-
-    def input_stream_gen(self):
-        try:
-            # try read first line as gzipped file
-            f = gzip.open(self.arguments['in_file'], 'rt', encoding='utf-8')
-            yield f.readline()
-        except gzip.BadGzipFile:
-            # if input is not gzipped, fallback to normal file I/O
-            f = open(self.arguments['in_file'], 'rt', encoding='utf-8')
-            yield f.readline()
-        # Generate rest of the input
-        for line in f:
-            yield line
 
     def create_sentences(self, text, identifier):
         sentence_list = []
@@ -66,7 +54,7 @@ class MentionDetection:
         return sentence_list
 
     def jsonl_to_sentences_with_id_gen(self):
-        for line in self.input_stream_gen():
+        for line in input_stream_gen_lines(self.arguments['in_file']):
             json_line = json.loads(line)
             identifier = json_line[self.arguments['identifier']]
             for field in self.arguments['fields']:
@@ -75,7 +63,7 @@ class MentionDetection:
                     yield sentence_object, identifier, self.field_mapping[field]
 
     def tab_sep_to_sentences_with_id_gen(self):
-        for line in self.input_stream_gen():
+        for line in input_stream_gen_lines(self.arguments['in_file']):
             identifier, text = line.strip().split('\t')
             for sentence_object in self.create_sentences(text, identifier):
                 yield sentence_object, identifier, 'body'
