@@ -22,6 +22,7 @@ class ErrorFileToDocuments:
             _, __, file_id, offset = filename.strip().split('_')  # Strip the newline
             offset = int(offset)
             if file_id != current_file_id:
+                print(file_id)
                 current_file_id = file_id
                 try:
                     current_source_file = gzip.open(self.source_folder + f'msmarco_doc_{current_file_id}.gz',
