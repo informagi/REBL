@@ -35,6 +35,7 @@ class ErrorFileToDocuments:
                                                encoding='utf-8')
                     current_source_file.seek(offset)
             else:
+                print(offset)
                 current_source_file.seek(offset)
             output += current_source_file.readline()
         with open(self.out_file, 'wt') as out:
