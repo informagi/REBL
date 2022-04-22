@@ -21,6 +21,7 @@ class ErrorFileToDocuments:
         current_offset = 0
         for filename in self.in_file_gen:
             _, __, file_id, offset = filename.strip().split('_')  # Strip the newline
+            print(file_id + " " + offset)
             offset = int(offset)
             if file_id != current_file_id:
                 current_offset = 0
