@@ -36,8 +36,8 @@ class ErrorFileToDocuments:
             else:
                 current_source_file.seek(offset)
             output += current_source_file.readline()
-            with open(self.out_file, 'wt') as out:
-                out.write(output)
+        with open(self.out_file, 'wt') as out:
+            out.write(output)
 
     @staticmethod
     def get_arguments(kwargs):
