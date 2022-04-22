@@ -17,25 +17,27 @@ class ErrorFileToDocuments:
     def process(self):
         current_file_id = '-1'
         current_source_file = None
-        with open(self.out_file, 'wt') as out:
-            for filename in self.in_file_gen:
-                _, __, file_id, offset = filename.strip().split('_')  # Strip the newline
-                offset = int(offset)
-                if file_id != current_file_id:
-                    current_file_id = file_id
-                    try:
-                        current_source_file = gzip.open(self.source_folder + f'msmarco_doc_{current_file_id}.gz',
-                                                        'rt',
-                                                        encoding='utf-8')
-                        current_source_file.seek(offset)
-                    except (gzip.BadGzipFile, FileNotFoundError):
-                        current_source_file = open(self.source_folder + f'msmarco_doc_{current_file_id}.txt',
-                                                   'rt',
-                                                   encoding='utf-8')
-                        current_source_file.seek(offset)
-                else:
+        output = ''
+        for filename in self.in_file_gen:
+            _, __, file_id, offset = filename.strip().split('_')  # Strip the newline
+            offset = int(offset)
+            if file_id != current_file_id:
+                current_file_id = file_id
+                try:
+                    current_source_file = gzip.open(self.source_folder + f'msmarco_doc_{current_file_id}.gz',
+                                                    'rt',
+                                                    encoding='utf-8')
                     current_source_file.seek(offset)
-                out.write(current_source_file.readline())
+                except (gzip.BadGzipFile, FileNotFoundError):
+                    current_source_file = open(self.source_folder + f'msmarco_doc_{current_file_id}.txt',
+                                               'rt',
+                                               encoding='utf-8')
+                    current_source_file.seek(offset)
+            else:
+                current_source_file.seek(offset)
+            output += current_source_file.readline()
+            with open(self.out_file, 'wt') as out:
+                out.write(output)
 
     @staticmethod
     def get_arguments(kwargs):
