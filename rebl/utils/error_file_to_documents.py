@@ -18,26 +18,25 @@ class ErrorFileToDocuments:
         current_file_id = '-1'
         current_source_file = None
         output = ''
+        current_offset = 0
         for filename in self.in_file_gen:
             _, __, file_id, offset = filename.strip().split('_')  # Strip the newline
             offset = int(offset)
             if file_id != current_file_id:
-                print(file_id)
+                current_offset = 0
                 current_file_id = file_id
                 try:
-                    current_source_file = gzip.open(self.source_folder + f'msmarco_doc_{current_file_id}.gz',
-                                                    'rt',
-                                                    encoding='utf-8')
-                    current_source_file.seek(offset)
+                    current_source_file = gzip.open(self.source_folder + f'msmarco_doc_{current_file_id}.gz', 'rb')
+                    current_source_file.seek(offset - current_offset, 1)
                 except (gzip.BadGzipFile, FileNotFoundError):
-                    current_source_file = open(self.source_folder + f'msmarco_doc_{current_file_id}.txt',
-                                               'rt',
-                                               encoding='utf-8')
-                    current_source_file.seek(offset)
+                    current_source_file = open(self.source_folder + f'msmarco_doc_{current_file_id}.txt', 'rb')
+                    current_source_file.seek(offset - current_offset, 1)
             else:
-                print(offset)
-                current_source_file.seek(offset)
-            output += current_source_file.readline()
+                current_source_file.seek(offset - current_offset, 1)
+            current_offset = offset
+            line = current_source_file.readline()
+            current_offset += len(line)
+            output += line.decode()
         with open(self.out_file, 'wt') as out:
             out.write(output)
 
