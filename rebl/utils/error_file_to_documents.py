@@ -13,7 +13,6 @@ class ErrorFileToDocuments:
         if self.source_folder[-1] != '/':
             self.source_folder += '/'
         self.in_file_gen = input_stream_gen_lines(self.arguments['in_file'])
-        self.encrypt = self.arguments['encrypt']
 
     def process(self):
         current_file_id = '-1'
@@ -25,11 +24,11 @@ class ErrorFileToDocuments:
                 if file_id != current_file_id:
                     current_file_id = file_id
                     try:
-                        current_source_file = gzip.open(self.source_folder + f'msmarco_doc_{current_file_id}.txt',
+                        current_source_file = gzip.open(self.source_folder + f'msmarco_doc_{current_file_id}.gz',
                                                         'rt',
                                                         encoding='utf-8')
                         current_source_file.seek(offset)
-                    except gzip.BadGzipFile:
+                    except (gzip.BadGzipFile, FileNotFoundError):
                         current_source_file = open(self.source_folder + f'msmarco_doc_{current_file_id}.txt',
                                                    'rt',
                                                    encoding='utf-8')
@@ -43,8 +42,7 @@ class ErrorFileToDocuments:
         arguments = {
             'in_file': None,
             'out_file': None,
-            'source_files_folder': None,
-            'encrypt': True,
+            'source_files_folder': None
         }
         for key, item in arguments.items():
             if kwargs.get(key) is not None:
@@ -74,12 +72,6 @@ if __name__ == '__main__':
         '-o',
         '--out_file',
         help='Output file name'
-    )
-    parser.add_argument(
-        '-e',
-        '--encrypt',
-        default=True,
-        help='Use gzip encryption'
     )
     ef_t_d = ErrorFileToDocuments(**vars(parser.parse_args()))
     ef_t_d.process()
