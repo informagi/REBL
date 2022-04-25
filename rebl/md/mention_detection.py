@@ -1,9 +1,8 @@
 import argparse
-import gzip
 import json
 import re
 from itertools import chain
-from rebl.utils.input_stream_generator import input_stream_gen_lines
+from ..utils import input_stream_gen_lines
 
 import pandas as pd
 import pyarrow as pa
@@ -29,9 +28,18 @@ class MentionDetection:
             remove_char_counts = []
             manual_sent = Sentence()
             for token in syntok_sentence:
-                manual_sent.add_token(Token(token.value, start_position=token.offset))
                 # Find how much we need to increase the offset by the characters that are removed by flair
-                remove_char_counts.append(len(self.chars_removed_by_flair.findall(token.value)))
+                if len(self.chars_removed_by_flair.sub('', token.value)) > 0:  # Zero length tokens are not added
+                    remove_char_counts.append(len(self.chars_removed_by_flair.findall(token.value)))
+                manual_sent.add_token(Token(token.value, start_position=token.offset))
+            try:
+                assert len(remove_char_counts) == len(manual_sent)  # Ensure offset list is of equal length
+            except AssertionError as e:
+                print("Length offset list: " + str(len(remove_char_counts)))
+                print("Length token list: " + str(len(manual_sent)))
+                with open(self.arguments['out_file'][:-8] + '_errors.txt', 'a') as f:
+                    f.write(identifier)
+                    f.write('\n')
 
             for i, token in enumerate(manual_sent):
                 start = token.start_pos
@@ -41,10 +49,11 @@ class MentionDetection:
                 try:  # Especially important that the offset is still correct, the rest can be reconstructed
                     assert raw_token_cleaned == token.text
                 except AssertionError as e:
-                    print(token.text)
-                    print(raw_token_cleaned)
-                    print(e)
-                    print()
+                    print("Token text" + token.text)
+                    print("Raw text" + raw_token_cleaned)
+                    print("Context: " + text[start-10:end+10])
+                    print("Remove char count: " + str(remove_char_counts[i]))
+                    print("AssertionError: " + str(e))
                     # For now ignore this document and store identifier in error file
                     with open(self.arguments['out_file'][:-8] + '_errors.txt', 'a') as f:
                         f.write(identifier)
