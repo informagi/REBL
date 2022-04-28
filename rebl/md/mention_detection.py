@@ -52,7 +52,7 @@ class MentionDetection:
                 except AssertionError as e:
                     print("Token text" + token.text)
                     print("Raw text" + raw_token_cleaned)
-                    print("Context: " + text[start-10:end+10])
+                    print("Context: " + text[start - 10:end + 10])
                     print("Remove char count: " + str(remove_char_counts[i]))
                     print("AssertionError: " + str(e))
                     # For now ignore this document and store identifier in error file
