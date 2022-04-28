@@ -37,6 +37,7 @@ class MentionDetection:
             except AssertionError as e:
                 print("Length offset list: " + str(len(remove_char_counts)))
                 print("Length token list: " + str(len(manual_sent)))
+                print("AssertionError: " + str(e))
                 with open(self.arguments['out_file'][:-8] + '_errors.txt', 'a') as f:
                     f.write(identifier)
                     f.write('\n')
@@ -97,8 +98,13 @@ class MentionDetection:
             try:
                 self.tagger.predict(batch)
             except RuntimeError:
-                torch.cuda.empty_cache()
-                self.tagger.predict(batch)
+                try:
+                    torch.cuda.empty_cache()
+                    self.tagger.predict(batch)
+                except RuntimeError:
+                    torch.cuda.empty_cache()
+                    for b in batch:
+                        self.tagger.predict(b)
             yield batch, ids, fields
 
     def sentence_md_batches_to_sentences_gen(self):
