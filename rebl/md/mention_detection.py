@@ -1,6 +1,7 @@
 import argparse
 import json
 import re
+import os
 from itertools import chain
 from ..utils import input_stream_gen_lines
 
@@ -21,6 +22,7 @@ class MentionDetection:
         self.tagger = SequenceTagger.load(self.arguments['tagger'])
         self.field_mapping = {f: i for i, f in enumerate(self.arguments['fields'])}
         self.chars_removed_by_flair = re.compile("([\u200c\ufe0f\ufeff])")
+        self.skip_to = 0
 
     def create_sentences(self, text, identifier):
         sentence_list = []
@@ -64,7 +66,7 @@ class MentionDetection:
         return sentence_list
 
     def jsonl_to_sentences_with_id_gen(self):
-        for line in input_stream_gen_lines(self.arguments['in_file']):
+        for line in input_stream_gen_lines(self.arguments['in_file'], skip_to=self.skip_to):
             json_line = json.loads(line)
             identifier = json_line[self.arguments['identifier']]
             for field in self.arguments['fields']:
@@ -139,12 +141,24 @@ class MentionDetection:
     def write_batches_to_parquet(self):
         fields = pd.DataFrame.from_dict({k: [v] for k, v in self.field_mapping.items()})
         table = pa.Table.from_pandas(df=fields, preserve_index=False)
-        with pq.ParquetWriter(self.out_file[:-8] + '_field_mapping.parquet', schema=table.schema) as writer:
-            writer.write_table(table)
 
-        gen = self.batch_mentions_gen()
-        df = pd.DataFrame(next(gen),
-                          columns=['identifier', 'field', 'text', 'start_pos', 'end_pos', 'score', 'tag'])
+        if not self.arguments['cont'] or not os.path.isfile(self.out_file[:-8] + '_field_mapping.parquet'):
+            with pq.ParquetWriter(self.out_file[:-8] + '_field_mapping.parquet', schema=table.schema) as writer:
+                writer.write_table(table)
+
+        if self.arguments['cont'] and os.path.isfile(self.out_file):
+            already_tagged = pq.read_table(self.out_file)
+            last_identifier = max({int(str(e).split('_')[-1]) for e in already_tagged['identifier']})
+            file_identifier = str(already_tagged['identifier'][0]).split('_')[-2]
+            last_file_identifier = f'msmarco_doc_{file_identifier}_{last_identifier}'
+            self.skip_to = last_identifier
+            df = already_tagged.to_pandas()
+            df = df[df['identifier'] != last_file_identifier]
+            gen = self.batch_mentions_gen()
+        else:
+            gen = self.batch_mentions_gen()
+            df = pd.DataFrame(next(gen),
+                              columns=['identifier', 'field', 'text', 'start_pos', 'end_pos', 'score', 'tag'])
         table = pa.Table.from_pandas(df=df, preserve_index=False)
         with pq.ParquetWriter(self.out_file, schema=table.schema) as writer:
             writer.write_table(table)
@@ -157,6 +171,7 @@ class MentionDetection:
                                   columns=['identifier', 'field', 'text', 'start_pos', 'end_pos', 'score', 'tag'])
                 table = pa.Table.from_pandas(df=df, preserve_index=False)
                 writer.write_table(table)
+        pq.write_table(pq.read_table(self.out_file).combine_chunks(), self.out_file)
 
     @staticmethod
     def get_arguments(kwargs):
@@ -168,7 +183,8 @@ class MentionDetection:
             'identifier': 'docid',
             'predict_batch_size': '100',
             'write_batch_size': '10000',
-            'file_type': 'jsonl'
+            'file_type': 'jsonl',
+            'cont': True
         }
         for key, item in arguments.items():
             if kwargs.get(key) is not None:
@@ -229,6 +245,12 @@ if __name__ == '__main__':
         choices=['jsonl', 'tsv'],
         help='What is the input file format',
         default='jsonl'
+    )
+    parser.add_argument(
+        '-c',
+        '--cont',
+        help='Append output file if it already exists',
+        default=True
     )
     md = MentionDetection(**vars(parser.parse_args()))
     md.write_batches_to_parquet()

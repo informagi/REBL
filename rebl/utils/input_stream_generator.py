@@ -1,15 +1,16 @@
 import gzip
 
 
-def input_stream_gen_lines(filename):
+def input_stream_gen_lines(filename, skip_to=0):
     try:
-        # try read first line as gzipped file
+        # Try read first line as gzipped file
         f = gzip.open(filename, 'rt', encoding='utf-8')
-        yield f.readline()
+        f.seek(1)  # To confirm the data is gzipped
+        f.seek(0)  # Resets to zero, because the default seek behaviour is to start from start of file
     except gzip.BadGzipFile:
-        # if input is not gzipped, fallback to normal file I/O
+        # If input is not gzipped, fallback to normal file I/O
         f = open(filename, 'rt', encoding='utf-8')
-        yield f.readline()
     # Generate rest of the input
+    f.seek(skip_to)
     for line in f:
         yield line
