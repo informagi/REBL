@@ -116,7 +116,7 @@ class MentionDetection:
                             with open(self.arguments['out_file'][:-8] + '_memory_problem.txt', 'a') as f:
                                 json.dump({"id": i,
                                            "start_pos": b[0].start_pos,
-                                           "end_pos": b[-1].start_pos},
+                                           "end_pos": b[-1].end_pos},
                                           f)
                                 f.write('\n')
                         yield [batch[i] for i in fine], [ids[i] for i in fine], [fields[i] for i in fine]
