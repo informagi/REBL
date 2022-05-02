@@ -99,15 +99,27 @@ class MentionDetection:
         for batch, ids, fields in self.batch_sentence_gen():
             try:
                 self.tagger.predict(batch)
+                yield batch, ids, fields
             except RuntimeError:
                 try:
                     torch.cuda.empty_cache()
                     self.tagger.predict(batch)
+                    yield batch, ids, fields
                 except RuntimeError:
                     torch.cuda.empty_cache()
-                    for b in batch:
-                        self.tagger.predict(b)
-            yield batch, ids, fields
+                    fine = []
+                    for i, b in enumerate(batch):
+                        try:
+                            self.tagger.predict(b)
+                            fine.append(i)
+                        except RuntimeError:  # Single sentence is too big for gpu...
+                            with open(self.arguments['out_file'][:-8] + '_memory_problem.txt', 'a') as f:
+                                json.dump({"id": ids,
+                                           "start_pos": b.start_pos,
+                                           "end_pos": b.end_pos},
+                                          f)
+                                f.write('\n')
+                        yield [batch[i] for i in fine], [ids[i] for i in fine], [fields[i] for i in fine]
 
     def sentence_md_batches_to_sentences_gen(self):
         for sentence_batch, id_batch, field_batch in self.mention_detect_sentence_batch_gen():
