@@ -110,6 +110,7 @@ class MentionDetection:
                     fine = []
                     for i, b in enumerate(batch):
                         try:
+                            torch.cuda.empty_cache()
                             self.tagger.predict(b)
                             fine.append(i)
                         except RuntimeError:  # Single sentence is too big for gpu...
@@ -120,6 +121,7 @@ class MentionDetection:
                                           f)
                                 f.write('\n')
                         yield [batch[i] for i in fine], [ids[i] for i in fine], [fields[i] for i in fine]
+                    torch.cuda.empty_cache()
 
     def sentence_md_batches_to_sentences_gen(self):
         for sentence_batch, id_batch, field_batch in self.mention_detect_sentence_batch_gen():
