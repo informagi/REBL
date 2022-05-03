@@ -114,7 +114,7 @@ class MentionDetection:
                             fine.append(i)
                         except RuntimeError:  # Single sentence is too big for gpu...
                             with open(self.arguments['out_file'][:-8] + '_memory_problem.txt', 'a') as f:
-                                json.dump({"id": i,
+                                json.dump({"id": ids[i],
                                            "start_pos": b[0].start_pos,
                                            "end_pos": b[-1].end_pos},
                                           f)
