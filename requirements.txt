@@ -1,5 +1,8 @@
-pandas
-pyarrow
-flair
-syntok
+pandas~=1.3.5
+pyarrow~=6.0.1
+flair~=0.10
+syntok~=1.4.4
 torch>=1.5.0,!=1.8.*
+
+REL~=0.0.1
+setuptools~=60.2.0

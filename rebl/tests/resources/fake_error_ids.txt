@@ -1,8 +1,0 @@
-msmarco_doc_00_37416
-msmarco_doc_00_39694
-msmarco_doc_00_89242
-msmarco_doc_01_5422
-msmarco_doc_01_13486
-msmarco_doc_02_13239
-msmarco_doc_02_13781
-msmarco_doc_02_14112

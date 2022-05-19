@@ -1,4 +1,5 @@
 import gzip
+import pyarrow.parquet as pq
 
 
 def input_stream_gen_lines(filename, skip_to=0):
@@ -14,3 +15,10 @@ def input_stream_gen_lines(filename, skip_to=0):
     f.seek(skip_to)
     for line in f:
         yield line
+
+
+def stream_parquet_file_per_entry(filename):
+    for batch in pq.ParquetFile(filename).iter_batches():
+        df = batch.to_pandas()
+        for line in df.iterrows():
+            yield line
