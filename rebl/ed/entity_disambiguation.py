@@ -85,7 +85,7 @@ class EntityDisambiguation:
     def create_disambiguate_batches(self):
         batch = []
         for identifier, result in self.stream_disambiguate_file():
-            if len(batch) == self.arguments['write_batch_size']:
+            if len(batch) >= self.arguments['write_batch_size']:
                 yield batch
                 batch = []
             for start_pos, span, text, entity, ed_score, tag, md_score in result[identifier]:
