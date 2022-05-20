@@ -150,14 +150,12 @@ if __name__ == '__main__':
     fields_me.add_argument(
         '-ff',
         '--fields_file',
-        required=True,
         help='Name of the fields file to tag'
     )
     fields_me.add_argument(
         '-f',
         '--fields',
         nargs='*',
-        required=True,
         help='Give the fields directly',
     )
     parser.add_argument(
