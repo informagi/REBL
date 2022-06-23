@@ -1,5 +1,6 @@
 import argparse
 import json
+import time
 from itertools import chain
 
 import pandas as pd
@@ -27,6 +28,7 @@ class EntityDisambiguation:
         self.stream_raw_source_file = input_stream_gen_lines(self.arguments['source_file'])
         self.mention_detection = MentionDetection(self.arguments['base_url'], self.arguments['wiki_version'])
         self.model = RelED(self.arguments['base_url'], self.arguments['wiki_version'], self.config)
+        self.docs_done = 0
 
     def create_fields(self):
         if self.arguments['fields']:
@@ -53,6 +55,7 @@ class EntityDisambiguation:
                         return
                 yield json_content[self.arguments['identifier']], field, spans, current_text, tags, scores
                 self.stream_parquet_md_file = chain([data], self.stream_parquet_md_file)
+            self.docs_done += 1
 
     def disambiguate(self, identifier, field, spans, text, tags, scores):
         unique_id = f'{identifier}+{field}'
@@ -99,6 +102,7 @@ class EntityDisambiguation:
         df = pd.DataFrame(next(gen),
                           columns=['doc_id', 'field', 'start_pos', 'end_pos', 'entity', 'ed_score', 'tag', 'md_score'])
         table = pa.Table.from_pandas(df=df, preserve_index=False)
+        t = time.time()
         with pq.ParquetWriter(self.out_file, schema=table.schema) as writer:
             writer.write_table(table)
             while True:
@@ -111,6 +115,9 @@ class EntityDisambiguation:
                                            'md_score'])
                 table = pa.Table.from_pandas(df=df, preserve_index=False)
                 writer.write_table(table)
+                batch_time = time.time() - t
+                print(f'Documents finished: {self.docs_done}; Batch time: {batch_time:.2f} seconds')
+                t = time.time()
         pq.write_table(pq.read_table(self.out_file).combine_chunks(), self.out_file)
 
     @staticmethod
