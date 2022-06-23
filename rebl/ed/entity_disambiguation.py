@@ -116,7 +116,7 @@ class EntityDisambiguation:
                 table = pa.Table.from_pandas(df=df, preserve_index=False)
                 writer.write_table(table)
                 batch_time = time.time() - t
-                print(f'Documents finished: {self.docs_done}; Batch time: {batch_time:.2f} seconds')
+                print(f'Documents finished: {self.docs_done}; Batch time: {batch_time:.2f} seconds', flush=True)
                 t = time.time()
         pq.write_table(pq.read_table(self.out_file).combine_chunks(), self.out_file)
 
