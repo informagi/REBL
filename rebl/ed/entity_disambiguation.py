@@ -27,7 +27,8 @@ class EntityDisambiguation:
         self.stream_parquet_md_file = stream_parquet_file_per_entry(self.arguments['md_file'])
         self.stream_raw_source_file = input_stream_gen_lines(self.arguments['source_file'])
         self.mention_detection = MentionDetection(self.arguments['base_url'], self.arguments['wiki_version'])
-        self.model = RelED(self.arguments['base_url'], self.arguments['wiki_version'], self.config)
+        self.model = RelED(self.arguments['base_url'], self.arguments['wiki_version'], self.config,
+                           reset_embeddings=True)
         self.docs_done = 0
 
     def create_fields(self):
