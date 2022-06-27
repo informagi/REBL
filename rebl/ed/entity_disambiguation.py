@@ -1,7 +1,6 @@
 import argparse
 import json
 import time
-import torch
 from itertools import chain
 
 import pandas as pd
