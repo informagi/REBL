@@ -58,7 +58,7 @@ class EntityDisambiguation:
                 yield json_content[self.arguments['identifier']], field, spans, current_text, tags, scores
                 self.stream_parquet_md_file = chain([data], self.stream_parquet_md_file)
             self.docs_done = i + 1
-            if self.docs_done == 5000:
+            if self.docs_done == 15000:
                 import sys
                 sys.exit(0)
             torch.cuda.empty_cache()
