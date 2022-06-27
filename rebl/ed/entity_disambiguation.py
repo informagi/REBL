@@ -58,7 +58,7 @@ class EntityDisambiguation:
                 yield json_content[self.arguments['identifier']], field, spans, current_text, tags, scores
                 self.stream_parquet_md_file = chain([data], self.stream_parquet_md_file)
             self.docs_done = i + 1
-            if self.docs_done == 15000:
+            if self.docs_done == 5000:
                 import sys
                 sys.exit(0)
             torch.cuda.empty_cache()
@@ -123,9 +123,7 @@ class EntityDisambiguation:
                 writer.write_table(table)
                 batch_time = time.time() - t
                 print(f'Documents finished: {self.docs_done}; Batch time: {batch_time:.2f} seconds', flush=True)
-                if batch_time > 35:
-                    self.model = RelED(self.arguments['base_url'], self.arguments['wiki_version'], self.config,
-                                       reset_embeddings=True)
+                print(f'Memory allocated in bytes: {torch.cuda.memory_allocated(self.model.device)}', flush=True)
                 t = time.time()
         pq.write_table(pq.read_table(self.out_file).combine_chunks(), self.out_file)
 
