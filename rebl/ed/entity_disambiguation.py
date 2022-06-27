@@ -1,6 +1,7 @@
 import argparse
 import json
 import time
+import torch
 from itertools import chain
 
 import pandas as pd
@@ -57,8 +58,7 @@ class EntityDisambiguation:
                 yield json_content[self.arguments['identifier']], field, spans, current_text, tags, scores
                 self.stream_parquet_md_file = chain([data], self.stream_parquet_md_file)
             self.docs_done = i + 1
-            self.model = RelED(self.arguments['base_url'], self.arguments['wiki_version'], self.config,
-                               reset_embeddings=True)
+            torch.cuda.empty_cache()
 
     def disambiguate(self, identifier, field, spans, text, tags, scores):
         unique_id = f'{identifier}+{field}'
