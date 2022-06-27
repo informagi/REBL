@@ -120,6 +120,9 @@ class EntityDisambiguation:
                 writer.write_table(table)
                 batch_time = time.time() - t
                 print(f'Documents finished: {self.docs_done}; Batch time: {batch_time:.2f} seconds', flush=True)
+                if batch_time > 35:
+                    self.model = RelED(self.arguments['base_url'], self.arguments['wiki_version'], self.config,
+                                       reset_embeddings=True)
                 t = time.time()
         pq.write_table(pq.read_table(self.out_file).combine_chunks(), self.out_file)
 
