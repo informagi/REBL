@@ -1,6 +1,7 @@
 import argparse
 import json
 import time
+import torch
 from itertools import chain
 
 import pandas as pd
@@ -37,8 +38,8 @@ class EntityDisambiguation:
         return {v[0]: k for k, v in pd.read_parquet(self.arguments['fields_file']).to_dict().items()}
 
     def stream_doc_with_spans(self):
-        while True:
-            json_content = json.loads(next(self.stream_raw_source_file))
+        for i, raw_data in enumerate(self.stream_raw_source_file):
+            json_content = json.loads(raw_data)
             for field_key in range(len(self.fields)):
                 field = self.fields[field_key]
                 current_text = json_content[field]
@@ -56,7 +57,9 @@ class EntityDisambiguation:
                         return
                 yield json_content[self.arguments['identifier']], field, spans, current_text, tags, scores
                 self.stream_parquet_md_file = chain([data], self.stream_parquet_md_file)
-            self.docs_done += 1
+            self.docs_done = i + 1
+            self.model = RelED(self.arguments['base_url'], self.arguments['wiki_version'], self.config,
+                               reset_embeddings=True)
 
     def disambiguate(self, identifier, field, spans, text, tags, scores):
         unique_id = f'{identifier}+{field}'
