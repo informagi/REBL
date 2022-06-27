@@ -58,10 +58,9 @@ class EntityDisambiguation:
                 yield json_content[self.arguments['identifier']], field, spans, current_text, tags, scores
                 self.stream_parquet_md_file = chain([data], self.stream_parquet_md_file)
             self.docs_done = i + 1
-            if self.docs_done == 15000:
+            if self.docs_done == 20000:
                 import sys
                 sys.exit(0)
-            torch.cuda.empty_cache()
 
     def disambiguate(self, identifier, field, spans, text, tags, scores):
         unique_id = f'{identifier}+{field}'
@@ -123,7 +122,6 @@ class EntityDisambiguation:
                 writer.write_table(table)
                 batch_time = time.time() - t
                 print(f'Documents finished: {self.docs_done}; Batch time: {batch_time:.2f} seconds', flush=True)
-                print(f'Memory allocated in bytes: {torch.cuda.memory_allocated(self.model.device)}', flush=True)
                 t = time.time()
         pq.write_table(pq.read_table(self.out_file).combine_chunks(), self.out_file)
 
