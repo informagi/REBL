@@ -37,6 +37,7 @@ class EntityDisambiguation:
             return {i: f for i, f in enumerate(self.arguments['fields'])}
         return {v[0]: k for k, v in pd.read_parquet(self.arguments['fields_file']).to_dict().items()}
 
+    @profile
     def stream_doc_with_spans(self):
         for i, raw_data in enumerate(self.stream_raw_source_file):
             json_content = json.loads(raw_data)
@@ -58,7 +59,7 @@ class EntityDisambiguation:
                 yield json_content[self.arguments['identifier']], field, spans, current_text, tags, scores
                 self.stream_parquet_md_file = chain(iter([data]), self.stream_parquet_md_file)
             self.docs_done = i + 1
-            if self.docs_done == 20000:
+            if self.docs_done == 5000:
                 import sys
                 sys.exit(0)
 
