@@ -1,8 +1,6 @@
 import argparse
 import json
 import time
-import gc
-from line_profiler import LineProfiler
 from itertools import chain
 
 import pandas as pd
@@ -32,7 +30,6 @@ class EntityDisambiguation:
         self.model = RelED(self.arguments['base_url'], self.arguments['wiki_version'], self.config,
                            reset_embeddings=True)
         self.docs_done = 0
-        self.lp = LineProfiler()
 
     def create_fields(self):
         if self.arguments['fields']:
@@ -40,13 +37,13 @@ class EntityDisambiguation:
         return {v[0]: k for k, v in pd.read_parquet(self.arguments['fields_file']).to_dict().items()}
 
     def stream_doc_with_spans(self):
+        data = next(self.stream_parquet_md_file)
         for i, raw_data in enumerate(self.stream_raw_source_file):
             json_content = json.loads(raw_data)
             for field_key in range(len(self.fields)):
                 field = self.fields[field_key]
                 current_text = json_content[field]
                 spans, tags, scores = [], [], []
-                data = next(self.stream_parquet_md_file)
                 while data[1]['field'] == field_key and \
                         data[1]['identifier'] == json_content[self.arguments['identifier']]:
                     spans.append((data[1]['start_pos'], data[1]['end_pos'] - data[1]['start_pos']))
@@ -58,10 +55,8 @@ class EntityDisambiguation:
                         yield json_content[self.arguments['identifier']], field, spans, current_text, tags, scores
                         return
                 yield json_content[self.arguments['identifier']], field, spans, current_text, tags, scores
-                self.stream_parquet_md_file = chain(iter([data]), self.stream_parquet_md_file)
             self.docs_done = i + 1
             if self.docs_done == 5000:
-                self.lp.print_stats()
                 import sys
                 sys.exit(0)
 
@@ -88,8 +83,7 @@ class EntityDisambiguation:
         return results
 
     def stream_disambiguate_file(self):
-        wrapper = self.lp(self.stream_doc_with_spans())
-        for identifier, field, spans, text, tags, scores in wrapper():
+        for identifier, field, spans, text, tags, scores in self.stream_doc_with_spans():
             if len(spans) == 0:
                 continue
             yield f'{identifier}+{field}', self.disambiguate(identifier, field, spans, text, tags, scores)
