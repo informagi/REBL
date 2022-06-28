@@ -56,9 +56,6 @@ class EntityDisambiguation:
                         return
                 yield json_content[self.arguments['identifier']], field, spans, current_text, tags, scores
             self.docs_done = i + 1
-            if self.docs_done == 20000:
-                import sys
-                sys.exit(0)
 
     def disambiguate(self, identifier, field, spans, text, tags, scores):
         unique_id = f'{identifier}+{field}'
