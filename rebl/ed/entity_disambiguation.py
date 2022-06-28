@@ -56,7 +56,7 @@ class EntityDisambiguation:
                         yield json_content[self.arguments['identifier']], field, spans, current_text, tags, scores
                         return
                 yield json_content[self.arguments['identifier']], field, spans, current_text, tags, scores
-                self.stream_parquet_md_file = chain([data], self.stream_parquet_md_file)
+                self.stream_parquet_md_file = chain(iter(data), self.stream_parquet_md_file)
             self.docs_done = i + 1
             if self.docs_done % 100 == 0:
                 gc.collect()
