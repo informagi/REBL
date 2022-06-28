@@ -2,6 +2,7 @@ import argparse
 import json
 import time
 import gc
+from line_profiler import LineProfiler
 from itertools import chain
 
 import pandas as pd
@@ -31,13 +32,13 @@ class EntityDisambiguation:
         self.model = RelED(self.arguments['base_url'], self.arguments['wiki_version'], self.config,
                            reset_embeddings=True)
         self.docs_done = 0
+        self.lp = LineProfiler()
 
     def create_fields(self):
         if self.arguments['fields']:
             return {i: f for i, f in enumerate(self.arguments['fields'])}
         return {v[0]: k for k, v in pd.read_parquet(self.arguments['fields_file']).to_dict().items()}
 
-    @profile
     def stream_doc_with_spans(self):
         for i, raw_data in enumerate(self.stream_raw_source_file):
             json_content = json.loads(raw_data)
@@ -60,6 +61,7 @@ class EntityDisambiguation:
                 self.stream_parquet_md_file = chain(iter([data]), self.stream_parquet_md_file)
             self.docs_done = i + 1
             if self.docs_done == 5000:
+                self.lp.print_stats()
                 import sys
                 sys.exit(0)
 
@@ -86,7 +88,8 @@ class EntityDisambiguation:
         return results
 
     def stream_disambiguate_file(self):
-        for identifier, field, spans, text, tags, scores in self.stream_doc_with_spans():
+        wrapper = self.lp(self.stream_doc_with_spans())
+        for identifier, field, spans, text, tags, scores in wrapper():
             if len(spans) == 0:
                 continue
             yield f'{identifier}+{field}', self.disambiguate(identifier, field, spans, text, tags, scores)
