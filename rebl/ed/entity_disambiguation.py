@@ -112,11 +112,7 @@ class EntityDisambiguation:
         t = time.time()
         with pq.ParquetWriter(self.out_file, schema=table.schema) as writer:
             writer.write_table(table)
-            while True:
-                try:
-                    batch = next(gen)
-                except StopIteration:
-                    break
+            for batch in gen:
                 df = pd.DataFrame(batch,
                                   columns=['doc_id', 'field', 'start_pos', 'end_pos', 'entity', 'ed_score', 'tag',
                                            'md_score'])
