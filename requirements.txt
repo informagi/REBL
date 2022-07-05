@@ -4,5 +4,5 @@ flair~=0.10
 syntok~=1.4.4
 torch>=1.5.0,!=1.8.*
 
-REL~=0.0.1
+git+git://github.com/chriskamphuis/REL # Change to regular REL after PR has been merged
 setuptools~=60.2.0
