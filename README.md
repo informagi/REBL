@@ -20,8 +20,7 @@ After installing REBL, it is very easy to run Mention Detection:
 
     python -m rebl.md.mention_detection.py \
         --in_file /path/to/input.gz \
-        --out_file /path/to/md.parquet \
-        --predict_batch_size 10
+        --out_file /path/to/md.parquet
 
 A file containing the fields tagged will also be created, its name will be created following the `--out_file` name.
 
