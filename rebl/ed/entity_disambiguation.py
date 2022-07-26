@@ -1,7 +1,6 @@
 import argparse
 import json
 import time
-from itertools import chain
 
 import pandas as pd
 import pyarrow as pa
@@ -10,7 +9,7 @@ from REL.entity_disambiguation import EntityDisambiguation as RelED
 from REL.mention_detection import MentionDetection
 from REL.utils import process_results
 
-from ..utils import input_stream_gen_lines, stream_parquet_file_per_entry
+from ..utils import input_stream_gen_lines
 
 
 class EntityDisambiguation:
@@ -24,12 +23,22 @@ class EntityDisambiguation:
         self.out_file = self.arguments['out_file']
         self.fields = self.create_fields()
         self.fields_inverted = {value: key for key, value in self.fields.items()}
-        self.stream_parquet_md_file = stream_parquet_file_per_entry(self.arguments['md_file'])
+        self.stream_parquet_md_file = self.stream_md_parquet_file_per_entry(self.arguments['md_file'])
         self.stream_raw_source_file = input_stream_gen_lines(self.arguments['source_file'])
         self.mention_detection = MentionDetection(self.arguments['base_url'], self.arguments['wiki_version'])
         self.model = RelED(self.arguments['base_url'], self.arguments['wiki_version'], self.config,
                            reset_embeddings=True)
         self.docs_done = 0
+
+    @staticmethod
+    def stream_md_parquet_file_per_entry(filename):
+        for batch in pq.ParquetFile(filename).iter_batches():
+            df = batch.to_pandas()
+            lines = [line for line in df.iterrows()]
+            lines = sorted(lines,
+                           key=lambda a: (int(a[1]['identifier'].split('_')[-1]), a[1]['field'], a[1]['start_pos']))
+            for line in lines:
+                yield line
 
     def create_fields(self):
         if self.arguments['fields']:
