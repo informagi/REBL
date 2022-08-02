@@ -49,7 +49,7 @@ class EntityParquetToJSON:
         print("Start Loading link_data", flush=True)
         data = []
         for i, batch in tqdm.tqdm(enumerate(pq.ParquetFile(self.arguments['in_file']).iter_batches())):
-            print(f"Finished batch {i}")
+            print(f"Finished batch {i}", flush=True)
             df = batch.to_pandas()
             data = data + [d for d in df.iterrows()]
         data = [d[1] for d in data]
@@ -78,7 +78,7 @@ class EntityParquetToJSON:
         print("Start creating JSON file", flush=True)
         for i, (docid, field, start_pos, end_pos, entity, tag, md_score) in enumerate(self.data):
             if i % 100000 == 0:
-                print(f"Finished {i} documents")
+                print(f"Finished {i} documents", flush=True)
             e_text = entity.replace('_', ' ')
             e_text = html.unescape(e_text)
             self.out[docid][self.field_mapping[field]].append({
@@ -93,7 +93,7 @@ class EntityParquetToJSON:
             })
         with gzip.open(self.arguments['out_file'], 'wt') as f:
             for docid in self.ids:
-                f.write(self.out[docid])
+                f.write(json.dumps(self.out[docid]))
                 f.write('\n')
 
 
