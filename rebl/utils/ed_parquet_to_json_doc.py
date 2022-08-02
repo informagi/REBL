@@ -12,11 +12,11 @@ class EntityParquetToJSON:
 
     def __init__(self, **kwargs):
         self.arguments = self.get_arguments(kwargs)
+        self.out = dict()
         self.ids = self.load_ids()
         self.entity_id_map = self.load_entity_id_map()
         self.data = self.load_data()
         self.field_mapping = {0: 'title', 1: 'headings', 2: 'body'}
-        self.out = dict()
 
     def load_ids(self):
         print("Start Loading ids", flush=True)
@@ -76,7 +76,6 @@ class EntityParquetToJSON:
 
     def run(self):
         print("Start creating JSON file", flush=True)
-        current_doc = None
         for i, (docid, field, start_pos, end_pos, entity, tag, md_score) in enumerate(self.data):
             if i % 100000 == 0:
                 print(f"Finished {i} documents")
@@ -96,6 +95,7 @@ class EntityParquetToJSON:
             for docid in self.ids:
                 f.write(self.out[docid])
                 f.write('\n')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
