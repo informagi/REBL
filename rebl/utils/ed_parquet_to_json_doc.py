@@ -16,13 +16,16 @@ class EntityParquetToJSON:
         self.entity_id_map = self.load_entity_id_map()
         self.data = self.load_data()
         self.field_mapping = {0: 'title', 1: 'headings', 2: 'body'}
+        self.out = dict()
 
     def load_ids(self):
         print("Start Loading ids", flush=True)
         ids = []
         with gzip.open(self.arguments['source_file'], 'r') as source:
             for i, line in tqdm.tqdm(enumerate(source)):
-                ids.append(json.loads(line)['docid'])
+                docid = json.loads(line)['docid']
+                ids.append(docid)
+                self.out[docid] = {'title': [], 'headings': [], 'body': [], 'docid': docid}
         return ids
 
     def load_entity_id_map(self):
@@ -74,30 +77,25 @@ class EntityParquetToJSON:
     def run(self):
         print("Start creating JSON file", flush=True)
         current_doc = None
-        to_write = {}
+        for i, (docid, field, start_pos, end_pos, entity, tag, md_score) in enumerate(self.data):
+            if i % 100000 == 0:
+                print(f"Finished {i} documents")
+            e_text = entity.replace('_', ' ')
+            e_text = html.unescape(e_text)
+            self.out[docid][self.field_mapping[field]].append({
+                "entity_id": self.entity_id_map[e_text],
+                "start_pos": start_pos,
+                "end_pos": end_pos,
+                "entity": e_text,
+                "details": {
+                    "tag": tag,
+                    "md_score": md_score
+                }
+            })
         with gzip.open(self.arguments['out_file'], 'wt') as f:
-            for i, (docid, field, start_pos, end_pos, entity, tag, md_score) in enumerate(self.data):
-                if i % 100000:
-                    print(f"Finished {i} documents")
-                if docid != current_doc:
-                    if len(to_write.keys()) > 0:
-                        f.write(json.dumps(to_write))
-                        f.write('\n')
-                    current_doc = docid
-                    to_write = {'title': [], 'headings': [], 'body': [], 'docid': current_doc}
-                etext = entity.replace('_', ' ')
-                etext = html.unescape(etext)
-                to_write[self.field_mapping[field]].append({
-                    "entity_id": self.entity_id_map[etext],
-                    "start_pos": start_pos,
-                    "end_pos": end_pos,
-                    "entity": etext,
-                    "details": {
-                        "tag": tag,
-                        "md_score": md_score
-                    }
-                })
-
+            for docid in self.ids:
+                f.write(self.out[docid])
+                f.write('\n')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
