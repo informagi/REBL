@@ -24,10 +24,8 @@ class EntityParquetToJSON:
         with gzip.open(self.arguments['source_file'], 'r') as source:
             for i, line in tqdm.tqdm(enumerate(source)):
                 pid = json.loads(line)['pid']
-                spans = json.loads(line)['spans']
-                docid = json.loads(line)['docid']
                 ids.append(pid)
-                self.out[pid] = {'passage': [], 'docid': docid, 'spans': spans, 'pid': pid}
+                self.out[pid] = {'passage': [], 'pid': pid}
         return ids
 
     def load_entity_id_map(self):
