@@ -35,8 +35,12 @@ class EntityDisambiguation:
         for batch in pq.ParquetFile(filename).iter_batches():
             df = batch.to_pandas()
             lines = [line for line in df.iterrows()]
-            lines = sorted(lines,
-                           key=lambda a: (int(a[1]['identifier'].split('_')[-1]), a[1]['field'], a[1]['start_pos']))
+            try:
+                lines = sorted(lines,
+                               key=lambda a: (int(a[1]['identifier'].split('_')[-1]), a[1]['field'], a[1]['start_pos']))
+            except AttributeError:
+                lines = sorted(lines,
+                               key=lambda a: (int(a[1]['identifier']), a[1]['field'], a[1]['start_pos']))
             for line in lines:
                 yield line
 
