@@ -81,16 +81,28 @@ class EntityParquetToJSON:
                 print(f"Finished {i} documents", flush=True)
             e_text = entity.replace('_', ' ')
             e_text = html.unescape(e_text)
-            self.out[pid][self.field_mapping[field]].append({
-                "entity_id": self.entity_id_map[e_text],
-                "start_pos": start_pos,
-                "end_pos": end_pos,
-                "entity": e_text,
-                "details": {
-                    "tag": tag,
-                    "md_score": md_score
-                }
-            })
+            try:
+                self.out[pid][self.field_mapping[field]].append({
+                    "entity_id": self.entity_id_map[e_text],
+                    "start_pos": start_pos,
+                    "end_pos": end_pos,
+                    "entity": e_text,
+                    "details": {
+                        "tag": tag,
+                        "md_score": md_score
+                    }
+                })
+            except KeyError:
+                self.out[int(pid)][self.field_mapping[field]].append({
+                    "entity_id": self.entity_id_map[e_text],
+                    "start_pos": start_pos,
+                    "end_pos": end_pos,
+                    "entity": e_text,
+                    "details": {
+                        "tag": tag,
+                        "md_score": md_score
+                    }
+                })
         with gzip.open(self.arguments['out_file'], 'wt') as f:
             for pid in self.ids:
                 f.write(json.dumps(self.out[pid]))
