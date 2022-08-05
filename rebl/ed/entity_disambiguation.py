@@ -41,6 +41,9 @@ class EntityDisambiguation:
             except AttributeError:
                 lines = sorted(lines,
                                key=lambda a: (int(a[1]['identifier']), a[1]['field'], a[1]['start_pos']))
+            except ValueError:
+                lines = sorted(lines,
+                               key=lambda a: (a[1]['identifier'], a[1]['field'], a[1]['start_pos']))
             for line in lines:
                 yield line
 
