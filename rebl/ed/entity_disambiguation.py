@@ -23,6 +23,7 @@ class EntityDisambiguation:
         self.out_file = self.arguments['out_file']
         self.fields = self.create_fields()
         self.fields_inverted = {value: key for key, value in self.fields.items()}
+        self.ids = self.get_ids()
         self.stream_parquet_md_file = self.stream_md_parquet_file_per_entry(self.arguments['md_file'])
         self.stream_raw_source_file = input_stream_gen_lines(self.arguments['source_file'])
         self.mention_detection = MentionDetection(self.arguments['base_url'], self.arguments['wiki_version'])
@@ -30,19 +31,19 @@ class EntityDisambiguation:
                            reset_embeddings=True)
         self.docs_done = 0
 
-    @staticmethod
-    def stream_md_parquet_file_per_entry(filename):
+    def get_ids(self):
+        ids = dict()
+        with open(self.arguments['source_file']) as f:
+            for i, line in enumerate(f):
+                docid = json.loads(line)[self.arguments['identifier']]
+                ids[docid] = i
+        return ids
+
+    def stream_md_parquet_file_per_entry(self, filename):
         for batch in pq.ParquetFile(filename).iter_batches():
             df = batch.to_pandas()
             lines = [line for line in df.iterrows()]
-            try:
-                lines = sorted(lines,
-                               key=lambda a: (int(a[1]['identifier'].split('_')[-1]), a[1]['field'], a[1]['start_pos']))
-            except AttributeError:
-                lines = sorted(lines,
-                               key=lambda a: (int(a[1]['identifier']), a[1]['field'], a[1]['start_pos']))
-            except ValueError:
-                pass
+            lines = sorted(lines, key=lambda a: self.ids[a])
             for line in lines:
                 yield line
 
