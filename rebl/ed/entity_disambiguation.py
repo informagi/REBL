@@ -1,4 +1,5 @@
 import argparse
+import gzip
 import json
 import time
 
@@ -33,10 +34,16 @@ class EntityDisambiguation:
 
     def get_ids(self):
         ids = dict()
-        with open(self.arguments['source_file']) as f:
-            for i, line in enumerate(f):
-                docid = json.loads(line)[self.arguments['identifier']]
-                ids[docid] = i
+        try:
+            with gzip.open(self.arguments['source_file']) as f:
+                for i, line in enumerate(f):
+                    docid = json.loads(line)[self.arguments['identifier']]
+                    ids[docid] = i
+        except gzip.BadGzipFile:
+            with open(self.arguments['source_file']) as f:
+                for i, line in enumerate(f):
+                    docid = json.loads(line)[self.arguments['identifier']]
+                    ids[docid] = i
         return ids
 
     def stream_md_parquet_file_per_entry(self, filename):
