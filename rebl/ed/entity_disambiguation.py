@@ -47,12 +47,13 @@ class EntityDisambiguation:
         return ids
 
     def stream_md_parquet_file_per_entry(self, filename):
+        lines = []
         for batch in pq.ParquetFile(filename).iter_batches():
             df = batch.to_pandas()
-            lines = [line for line in df.iterrows()]
-            lines = sorted(lines, key=lambda a: self.ids[a[1]['identifier']])
-            for line in lines:
-                yield line
+            lines += [line for line in df.iterrows()]
+        lines = sorted(lines, key=lambda a: self.ids[a[1]['identifier']])
+        for line in lines:
+            yield line
 
     def create_fields(self):
         if self.arguments['fields']:
