@@ -50,7 +50,7 @@ class EntityDisambiguation:
         for batch in pq.ParquetFile(filename).iter_batches():
             df = batch.to_pandas()
             lines = [line for line in df.iterrows()]
-            lines = sorted(lines, key=lambda a: self.ids[a])
+            lines = sorted(lines, key=lambda a: self.ids[a[1]['identifier']])
             for line in lines:
                 yield line
 
