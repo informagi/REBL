@@ -13,6 +13,7 @@ class EntityParquetToJSON:
     def __init__(self, **kwargs):
         self.arguments = self.get_arguments(kwargs)
         self.out = dict()
+        self.ids_map = dict()
         self.ids = self.load_ids()
         self.entity_id_map = self.load_entity_id_map()
         self.data = self.load_data()
@@ -25,6 +26,7 @@ class EntityParquetToJSON:
             for i, line in tqdm.tqdm(enumerate(source)):
                 docid = json.loads(line)['docid']
                 ids.append(docid)
+                self.ids_map[docid] = i
                 self.out[docid] = {'title': [], 'headings': [], 'body': [], 'docid': docid}
         return ids
 
@@ -51,11 +53,11 @@ class EntityParquetToJSON:
         for i, batch in tqdm.tqdm(enumerate(pq.ParquetFile(self.arguments['in_file']).iter_batches())):
             print(f"Finished batch {i}", flush=True)
             df = batch.to_pandas()
-            data = data + [d for d in df.iterrows()]
+            data += [d for d in df.iterrows()]
         data = [d[1] for d in data]
         data = [[e['doc_id'], e['field'], e['start_pos'], e['end_pos'], e['entity'], e['tag'], e['md_score']] for e in
                 data]
-        data = sorted(data, key=lambda a: (int(a[0].split('_')[-1]), a[1], a[2]))
+        data = sorted(data, key=lambda a: (self.ids_map[a[0]], a[1], a[2]))
         return data
 
     @staticmethod
