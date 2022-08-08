@@ -17,7 +17,7 @@ class EntityParquetToJSON:
         self.ids = self.load_ids()
         self.entity_id_map = self.load_entity_id_map()
         self.data = self.load_data()
-        self.field_mapping = {0: 'title', 1: 'headings', 2: 'body'}
+        self.field_mapping = {0: 'title', 1: 'body'}
 
     def load_ids(self):
         print("Start Loading ids", flush=True)
