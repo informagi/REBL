@@ -29,7 +29,7 @@ class EntityDisambiguation:
         self.stream_raw_source_file = input_stream_gen_lines(self.arguments['source_file'])
         self.mention_detection = MentionDetection(self.arguments['base_url'], self.arguments['wiki_version'])
         self.model = RelED(self.arguments['base_url'], self.arguments['wiki_version'], self.config,
-                           reset_embeddings=True)
+                           reset_embeddings=True, no_corefs=self.arguments['no_corefs'])
         self.docs_done = 0
 
     def get_ids(self):
@@ -151,7 +151,8 @@ class EntityDisambiguation:
             'base_url': None,
             'wiki_version': None,
             'identifier': 'docid',
-            'write_batch_size': 10000
+            'write_batch_size': 10000,
+            "no_corefs": None
         }
         for key, item in arguments.items():
             if kwargs.get(key) is not None:
@@ -162,6 +163,7 @@ class EntityDisambiguation:
         for key in ['md_file', 'source_file', 'out_file', 'base_url', 'wiki_version']:
             if arguments[key] is None:
                 raise IOError(f'Argument {key} needs to be provided')
+        print(arguments)
         return arguments
 
 
@@ -220,6 +222,12 @@ if __name__ == '__main__':
         '--write_batch_size',
         help='Write batch size',
         default=10000
+    )
+    parser.add_argument( 
+        "--no_corefs",
+        action="store_true",
+        help="use function with_coref for entity disambiguation()?", 
+        default=False
     )
     ed = EntityDisambiguation(**vars(parser.parse_args()))
     ed.process()
