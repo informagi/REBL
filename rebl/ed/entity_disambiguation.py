@@ -2,6 +2,7 @@ import argparse
 import gzip
 import json
 import time
+import pdb 
 
 import pandas as pd
 import pyarrow as pa
@@ -115,16 +116,16 @@ class EntityDisambiguation:
             if len(batch) >= self.arguments['write_batch_size']:
                 yield batch
                 batch = []
-            for start_pos, span, text, entity, ed_score, tag, md_score in result[identifier]:
+            for start_pos, span, text, entity, ed_score, tag, md_score, is_coref in result[identifier]:
                 doc_id, field = identifier.split('+')
                 field = self.fields_inverted[field]
-                batch.append([doc_id, field, start_pos, start_pos + span, entity, ed_score, tag, md_score])
+                batch.append([doc_id, field, start_pos, start_pos + span, entity, ed_score, tag, md_score, is_coref])
         yield batch
 
     def process(self):
         gen = self.create_disambiguate_batches()
         df = pd.DataFrame(next(gen),
-                          columns=['doc_id', 'field', 'start_pos', 'end_pos', 'entity', 'ed_score', 'tag', 'md_score'])
+                          columns=['doc_id', 'field', 'start_pos', 'end_pos', 'entity', 'ed_score', 'tag', 'md_score', 'is_coref'])
         table = pa.Table.from_pandas(df=df, preserve_index=False)
         t = time.time()
         with pq.ParquetWriter(self.out_file, schema=table.schema) as writer:
@@ -132,7 +133,7 @@ class EntityDisambiguation:
             for batch in gen:
                 df = pd.DataFrame(batch,
                                   columns=['doc_id', 'field', 'start_pos', 'end_pos', 'entity', 'ed_score', 'tag',
-                                           'md_score'])
+                                           'md_score', 'is_coref'])
                 table = pa.Table.from_pandas(df=df, preserve_index=False)
                 writer.write_table(table)
                 batch_time = time.time() - t
