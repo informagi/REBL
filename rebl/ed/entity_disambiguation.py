@@ -30,7 +30,7 @@ class EntityDisambiguation:
         self.stream_raw_source_file = input_stream_gen_lines(self.arguments['source_file'])
         self.mention_detection = MentionDetection(self.arguments['base_url'], self.arguments['wiki_version'])
         self.model = RelED(self.arguments['base_url'], self.arguments['wiki_version'], self.config,
-                           reset_embeddings=True, no_corefs=self.arguments['no_corefs'])
+                           reset_embeddings=True, search_corefs=self.arguments['search_corefs'])
         self.docs_done = 0
 
     def get_ids(self):
@@ -153,7 +153,7 @@ class EntityDisambiguation:
             'wiki_version': None,
             'identifier': 'docid',
             'write_batch_size': 10000,
-            "no_corefs": None
+            "search_corefs": None
         }
         for key, item in arguments.items():
             if kwargs.get(key) is not None:
@@ -224,11 +224,12 @@ if __name__ == '__main__':
         help='Write batch size',
         default=10000
     )
-    parser.add_argument( 
-        "--no_corefs",
-        action="store_true",
-        help="use function with_coref for entity disambiguation()?", 
-        default=False
+    parser.add_argument(
+        '--search_corefs',
+        type=str,
+        choices=['all', 'lsh', 'off'],
+        required=True,
+        help="Setting for search_corefs in Entity Disambiguation."
     )
     ed = EntityDisambiguation(**vars(parser.parse_args()))
     ed.process()
