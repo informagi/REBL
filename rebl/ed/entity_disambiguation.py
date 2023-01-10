@@ -39,11 +39,22 @@ class EntityDisambiguation:
                 for i, line in enumerate(f):
                     docid = json.loads(line)[self.arguments['identifier']]
                     ids[docid] = i
-        except gzip.BadGzipFile:
-            with open(self.arguments['source_file']) as f:
+        except OSError:
+            try:
+                with open(self.arguments['source_file']) as f:
+                    for i, line in enumerate(f):
+                        docid = json.loads(line)[self.arguments['identifier']]
+                        ids[docid] = i
+            except json.decoder.JSONDecodeError:
+                with open(self.arguments['source_file'], 'r') as f:
+                    for i, line in enumerate(f):
+                        identifier, _ = line.strip().split('\t')
+                        ids[identifier] = i
+        except json.decoder.JSONDecodeError:
+            with gzip.open(self.arguments['source_file'], 'r') as f:
                 for i, line in enumerate(f):
-                    docid = json.loads(line)[self.arguments['identifier']]
-                    ids[docid] = i
+                    identifier, _ = line.decode().strip().split('\t')
+                    ids[identifier] = i
         return ids
 
     def stream_md_parquet_file_per_entry(self, filename):
@@ -63,7 +74,14 @@ class EntityDisambiguation:
     def stream_doc_with_spans(self):
         data = next(self.stream_parquet_md_file)
         for i, raw_data in enumerate(self.stream_raw_source_file):
-            json_content = json.loads(raw_data)
+            try:
+                json_content = json.loads(raw_data)
+            except json.decoder.JSONDecodeError:
+                identifier, body = raw_data.strip().split('\t')
+                json_content = {
+                    'identifier': identifier,
+                    'body': body
+                }
             for field_key in range(len(self.fields)):
                 field = self.fields[field_key]
                 current_text = json_content[field]
