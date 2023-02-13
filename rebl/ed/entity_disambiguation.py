@@ -40,11 +40,22 @@ class EntityDisambiguation:
                 for i, line in enumerate(f):
                     docid = json.loads(line)[self.arguments['identifier']]
                     ids[docid] = i
-        except gzip.BadGzipFile:
-            with open(self.arguments['source_file']) as f:
+        except OSError:
+            try:
+                with open(self.arguments['source_file']) as f:
+                    for i, line in enumerate(f):
+                        docid = json.loads(line)[self.arguments['identifier']]
+                        ids[docid] = i
+            except json.decoder.JSONDecodeError:
+                with open(self.arguments['source_file'], 'r') as f:
+                    for i, line in enumerate(f):
+                        identifier, _ = line.strip().split('\t')
+                        ids[identifier] = i
+        except json.decoder.JSONDecodeError:
+            with gzip.open(self.arguments['source_file'], 'r') as f:
                 for i, line in enumerate(f):
-                    docid = json.loads(line)[self.arguments['identifier']]
-                    ids[docid] = i
+                    identifier, _ = line.decode().strip().split('\t')
+                    ids[identifier] = i
         return ids
 
     def stream_md_parquet_file_per_entry(self, filename):
@@ -63,13 +74,22 @@ class EntityDisambiguation:
 
     def stream_doc_with_spans(self):
         data = next(self.stream_parquet_md_file)
-        for i, raw_data in enumerate(self.stream_raw_source_file):
-            json_content = json.loads(raw_data)
+        docs = sorted([d for d in self.stream_raw_source_file], key=lambda a: int(a.strip().split('\t')[0]))
+        for i, raw_data in enumerate(docs):
+            try:
+                json_content = json.loads(raw_data)
+            except json.decoder.JSONDecodeError:
+                identifier, body = raw_data.strip().split('\t')
+                json_content = {
+                    'identifier': identifier,
+                    'body': body
+                }
             for field_key in range(len(self.fields)):
                 field = self.fields[field_key]
                 current_text = json_content[field]
                 spans, tags, scores = [], [], []
-                while data[1]['field'] == field_key and \
+
+                while data[1]['field'] == field_key or data[1]['field'] == field and \
                         data[1]['identifier'] == json_content[self.arguments['identifier']]:
                     spans.append((data[1]['start_pos'], data[1]['end_pos'] - data[1]['start_pos']))
                     tags.append(data[1]['tag'])

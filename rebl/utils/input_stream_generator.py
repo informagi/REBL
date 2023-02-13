@@ -8,7 +8,7 @@ def input_stream_gen_lines(filename, skip_to=0):
         f = gzip.open(filename, 'rt', encoding='utf-8')
         f.seek(1)  # To confirm the data is gzipped
         f.seek(0)  # Resets to zero, because the default seek behaviour is to start from start of file
-    except gzip.BadGzipFile:
+    except Exception:
         # If input is not gzipped, fallback to normal file I/O
         f = open(filename, 'rt', encoding='utf-8')
     # Generate rest of the input
