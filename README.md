@@ -61,3 +61,19 @@ The following command line options are available (`-f` and `-ff` are mutually ex
 * `-id IDENTIFIER, --identifier IDENTIFIER` field key to identify document
 * `wb WRITE_BATCH_SIZE, --write_batch_size WRITE_BATCH_SIZE` NWrite batch size `default: 10000`
 
+## Citation:
+REBL is published at DESIRES: https://desires.dei.unipd.it/2022/papers/paper-08.pdf
+
+bib:
+```
+@inproceedings{rebl,
+	author    = {Chris Kamphuis and Faegheh Hasibi and Jimmy Lin and Arjen P. de Vries},
+	title     = {{REBL: Entity Linking at Scale}},
+	booktitle = {Proceedings of the 3rd International Conference on Design of Experimental Search \& Information REtrieval Systems},
+	year      = {2022},
+	url       = {https://desires.dei.unipd.it/2022/papers/paper-08.pdf},
+	address   = {Aachen},
+	publisher = {CEUR-WS.org},
+	series    = {DESIRES '22}
+}
+```
